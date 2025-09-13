@@ -7,8 +7,8 @@ export const getApiBaseUrl = (): string => {
   if (window.location.hostname !== 'localhost' && 
       window.location.hostname !== '127.0.0.1' && 
       window.location.hostname !== '0.0.0.0') {
-    // Use the same domain with /api prefix when running on Vercel
-    return '/api';
+    // For the simplified API that doesn't use the /api prefix for endpoints
+    return '';
   }
   
   // Local development
