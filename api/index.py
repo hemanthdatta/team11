@@ -58,10 +58,22 @@ try:
         token_type: str = "bearer"
     
     # Mock users database (in-memory)
-    users_db = {}
+    users_db = {
+        # Add a test user
+        "testuser": {
+            "id": 1,
+            "name": "Test User",
+            "email": "test@example.com",
+            "phone": "1234567890",
+            "user_id": "testuser",
+            "password": "password123", # Don't do this in production!
+            "created_at": datetime.now().isoformat()
+        }
+    }
     
-    # Add signup endpoint
+    # Add signup endpoint - both with and without /api prefix for flexibility
     @app.post("/auth/signup", response_model=UserResponse)
+    @app.post("/api/auth/signup", response_model=UserResponse)
     async def signup(user: UserCreate):
         try:
             logger.info(f"Signup attempt for user_id: {user.user_id}")
@@ -98,8 +110,9 @@ try:
             logger.error(f"Signup error: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Signup error: {str(e)}")
     
-    # Add login endpoint
+    # Add login endpoint - both with and without /api prefix for flexibility
     @app.post("/auth/login", response_model=Token)
+    @app.post("/api/auth/login", response_model=Token)
     async def login(login_request: LoginRequest):
         try:
             logger.info(f"Login attempt for user_id: {login_request.user_id}")
@@ -128,12 +141,36 @@ try:
 
     # Health check endpoint for debugging
     @app.get("/api/health")
+    @app.get("/health")
     async def health_check():
         return {
             "status": "ok", 
             "timestamp": datetime.now().isoformat(),
             "users_count": len(users_db),
-            "python_path": sys.path
+            "python_path": sys.path,
+            "registered_routes": [
+                {"path": route.path, "name": route.name, "methods": list(route.methods)} 
+                for route in app.routes
+            ]
+        }
+        
+    # Debug endpoint to echo request data
+    @app.post("/api/debug")
+    @app.post("/debug")
+    async def debug_request(request: Request):
+        body = await request.body()
+        try:
+            body_json = json.loads(body)
+        except:
+            body_json = {"raw": str(body)}
+            
+        return {
+            "method": request.method,
+            "url": str(request.url),
+            "headers": dict(request.headers),
+            "query_params": dict(request.query_params),
+            "path_params": request.path_params,
+            "body": body_json
         }
     
     # Override CORS settings to allow requests from the same domain
